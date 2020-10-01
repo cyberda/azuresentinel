@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Threading.Tasks;
 using Microsoft.Azure.OperationalInsights;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
@@ -9,10 +10,6 @@ namespace SampleDataIngestTool
 {
     public class LogAnalyticsCheck
     {
-        static string clientId = "";
-        static string clientSecret = "";
-        static string customerId = "";
-        static string domain = "";
         public LogAnalyticsCheck()
         {
 
@@ -22,13 +19,10 @@ namespace SampleDataIngestTool
         {
             try
             {
-                // Get credentials fron config.json
-                var appConfig = new AppConfig();
-                var credentials = appConfig.GetCredentials();
-                customerId = credentials["workspaceId"];
-                clientId = credentials["clientId"];
-                clientSecret = credentials["clientSecret"];
-                domain = credentials["domain"];
+                string customerId = ConfigurationManager.AppSettings["workspaceId"];
+                string clientId = ConfigurationManager.AppSettings["clientId"];
+                string clientSecret = ConfigurationManager.AppSettings["clientSecret"];
+                string domain = ConfigurationManager.AppSettings["domain"]; 
 
                 var authEndpoint = "https://login.microsoftonline.com";
                 var tokenAudience = "https://api.loganalytics.io/";
@@ -44,11 +38,6 @@ namespace SampleDataIngestTool
 
                 var laClient = new OperationalInsightsDataClient(creds);
                 laClient.WorkspaceId = customerId;
-
-                //get custom table name
-                var path = new SampleDataPath();
-                var dirPath = path.GetDirPath();
-                tableName = tableName.Replace(dirPath, "").Replace(".json", "");
 
                 //get a list of table names in your workspace
                 var tableNameList = new List<string>();

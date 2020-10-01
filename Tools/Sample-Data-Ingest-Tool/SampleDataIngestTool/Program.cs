@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.IO;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -8,41 +9,40 @@ using System.Threading.Tasks;
 
 namespace SampleDataIngestTool
 {
-    class ApiExample
+    class Program
     {
-        static string customerId = "";
-        static string sharedKey = "";
-        static string logName = "";
         // You can use an optional field to specify the timestamp from the data. If the time field is not specified, Azure Monitor assumes the time is the message ingestion time
         static string timeStampField = "";
-        static void Main()
+        private static string customerId;
+        private static string sharedKey;
+
+        static void Main(string[] args)
         {
-            // Get a list of Custom Log file names with their paths
-            var files = GetFiles();
+            string sampleDataPath = ConfigurationManager.AppSettings["sampleDataPath"];
+            if (!Directory.Exists(sampleDataPath))
+            {
+                throw new IOException("Specified directory not exists");
+            }
+
+            string[] files = Directory.GetFiles(sampleDataPath, "*.json", SearchOption.AllDirectories);
 
             if (files.Length > 0)
             {
-                // Get credentials
-                var appConfig = new AppConfig();
-                var creds = appConfig.GetCredentials();
-                customerId = creds["workspaceId"];
-                sharedKey = creds["sharedKey"];
-
-                var laCheck = new LogAnalyticsCheck();
-                var path = new SampleDataPath();
-                var dirPath = path.GetDirPath();
-
+                customerId = ConfigurationManager.AppSettings["workspaceId"];
+                sharedKey = ConfigurationManager.AppSettings["sharedKey"];
+                 
+                var laCheck = new LogAnalyticsCheck();            
+                   
                 // Loop through files 
                 foreach (var file in files)
                 {
-                    var fileName = file.Replace(dirPath, "");
-
+                    string tableName = Path.GetFileName(file).Replace(".json", "");
                     // Check if the file has been pushed to the Log Analytics
-                    bool result = laCheck.RunLAQuery(file);
+                    bool result = laCheck.RunLAQuery(tableName);
                     if (result == true)
                     {
                         // Prompt user to choose to repush data
-                        Console.WriteLine("{0} has been posted. Would you like to post it again?", fileName);
+                        Console.WriteLine("{0} has been posted. Would you like to post it again?", tableName);
                         var res = Console.ReadLine();
                         if(res.ToLower() == "y" || res.ToLower() == "yes")
                         {
@@ -62,24 +62,6 @@ namespace SampleDataIngestTool
             else
             {
                 Console.WriteLine("No Custom files in Sample Data");
-            }
-        }
-
-        //Get Custom Log files from Sample Data
-        private static string[] GetFiles()
-        {
-            try
-            {
-                var path = new SampleDataPath();
-                var filePath = path.GetDirPath();
-                string[] files = System.IO.Directory.GetFiles(filePath, "*.json*", SearchOption.AllDirectories);
-                
-                return files;
-            }
-            catch (Exception excep)
-            {
-                Console.WriteLine("Get Files Error: " + excep.Message);
-                throw new Exception("Get Files Error: " + excep.Message);
             }
         }
 
@@ -155,10 +137,8 @@ namespace SampleDataIngestTool
                 HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
 
-                var path = new SampleDataPath();
-                var dirPath = path.GetDirPath();
 
-                logName = filePath.Replace(dirPath,"").Replace("_CL.json", "").Replace(".json", "");
+                string logName = Path.GetFileName(filePath).Replace("_CL.json", "").Replace(".json", "");
                 client.DefaultRequestHeaders.Add("Log-Type", logName);
                 client.DefaultRequestHeaders.Add("Authorization", signature);
                 client.DefaultRequestHeaders.Add("x-ms-date", date);
