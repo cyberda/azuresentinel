@@ -29,4 +29,4 @@ query: |
   | where TimeGenerated > ago(7d)
   | mv-expand parse_json(ExtendedProperties)
   | where ExtendedProperties.Status =~ "New"
-  | extend status = todyanmic(ExtendedProperties.Status)
+  | extend status = todynamic(ExtendedProperties.Status)
