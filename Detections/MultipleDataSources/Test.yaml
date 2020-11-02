@@ -16,8 +16,8 @@ requiredDataConnectors:
   - connectorId: PaloAltoNetworks
     dataTypes:
       - CommonSecurityLog
-queryFrequency: 1d
-queryPeriod: 1d
+queryFrequency: 7d
+queryPeriod: 7d
 triggerOperator: gt
 triggerThreshold: 0
 tactics:
@@ -28,4 +28,4 @@ query: |
   SecurityAlert
   | where TimeGenerated > ago(7d)
   | mv-expand parse_json(ExtendedProperties)
-  | extend status = todynamic(ExtendedProperties.Status)
+  | extend status = tostring(ExtendedProperties.Status)
