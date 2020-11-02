@@ -27,4 +27,6 @@ query: |
 
   OfficeActivity
   | where TimeGenerated > ago(30d)
-  | where isnotempty(ExtendedProperties)
+  | mv-expand parse_json(ExtendedProperties)
+  | where ExtendedProperties.Name =~ "Countries"
+  | extend country = ExtendedProperties.Countries
