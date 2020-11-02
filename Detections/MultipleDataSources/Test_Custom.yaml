@@ -1,0 +1,21 @@
+id: 0a02fafd-5d52-4e29-b140-0fc856840c7b
+name: Custom Test
+description: |
+  'Custom Test'
+severity: Low
+requiredDataConnectors:
+  - connectorId: Office365
+    dataTypes:
+      - OfficeActivity
+queryFrequency: 7d
+queryPeriod: 30d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110
+query: |
+  
+  QualysHostDetection_CL
+  | take 10
