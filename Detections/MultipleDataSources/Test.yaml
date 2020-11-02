@@ -28,5 +28,5 @@ query: |
   SecurityAlert
   | where TimeGenerated > ago(7d)
   | mv-expand parse_json(ExtendedProperties)
-  | where tostring(ExtendedProperties.Status) =~ "New"
+  | where tostring(todynamic(ExtendedProperties.Status)) =~ "New"
   | extend status = todynamic(ExtendedProperties.Status)
