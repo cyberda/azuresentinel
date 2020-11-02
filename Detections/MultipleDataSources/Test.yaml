@@ -1,0 +1,30 @@
+id: f2904019-85d2-4621-8220-57962a98df01
+name: Test
+description: |
+  'Test'
+severity: High
+requiredDataConnectors:
+  - connectorId: DNS
+    dataTypes:
+      - DnsEvents
+  - connectorId: AzureMonitor(VMInsights) 
+    dataTypes:
+      - VMConnection
+  - connectorId: CiscoASA
+    dataTypes:
+      - CommonSecurityLog
+  - connectorId: PaloAltoNetworks
+    dataTypes:
+      - CommonSecurityLog
+queryFrequency: 1d
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CommandAndControl
+  - CredentialAccess
+query: |
+
+  OfficeActivity
+  | where TimeGenerated > ago(30d)
+  | where isnotempty(ExtendedProperties)
