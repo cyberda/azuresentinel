@@ -1,5 +1,11 @@
-﻿using System;
+﻿using Microsoft.Rest;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using Newtonsoft.Json.Serialization;
+using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
@@ -17,7 +23,11 @@ namespace SampleDataIngestTool
         static string timeStampField = "";
         static void Main()
         {
-            // Get a list of Custom Log file names with their paths
+
+            //If you want to check specifi file for testing enable this arr list
+
+            //int[] arr = { 1, 20, 30, 4, 5, 6, 7, 20, 30 };
+
             var files = GetFiles();
 
             if (files.Length > 0)
@@ -31,22 +41,26 @@ namespace SampleDataIngestTool
                 var laCheck = new LogAnalyticsCheck();
                 var path = new SampleDataPath();
                 var dirPath = path.GetDirPath();
-
+                var i = 0;
                 // Loop through files 
                 foreach (var file in files)
                 {
-                    var fileName = file.Replace(dirPath, "");
+                    //var file1 = files[arr[i]];
+                    //Update this variable instead of file -> file everywhere for testing
+                    var fileName = files[31].Replace(dirPath, "");
 
+                    //for increment testing arr
+                    //i++;
                     // Check if the file has been pushed to the Log Analytics
-                    bool result = laCheck.RunLAQuery(file);
+                    bool result = laCheck.RunLAQuery(files[37]);
                     if (result == true)
                     {
                         // Prompt user to choose to repush data
                         Console.WriteLine("{0} has been posted. Would you like to post it again?", fileName);
                         var res = Console.ReadLine();
-                        if(res.ToLower() == "y" || res.ToLower() == "yes")
+                        if (res.ToLower() == "y" || res.ToLower() == "yes")
                         {
-                            PushDataToLog(file);
+                            PushDataToLog(files[31]);
                         }
                         else
                         {
@@ -55,7 +69,7 @@ namespace SampleDataIngestTool
                     }
                     else
                     {
-                        PushDataToLog(file);
+                        PushDataToLog(files[31]);
                     }
                 }
             }
@@ -73,7 +87,7 @@ namespace SampleDataIngestTool
                 var path = new SampleDataPath();
                 var filePath = path.GetDirPath();
                 string[] files = System.IO.Directory.GetFiles(filePath, "*.json*", SearchOption.AllDirectories);
-                
+
                 return files;
             }
             catch (Exception excep)
@@ -130,7 +144,7 @@ namespace SampleDataIngestTool
         {
             try
             {
-                //Create a hash for the API signature
+
                 var datestring = DateTime.UtcNow.ToString("r");
                 string json = ReadFile(filePath);
                 var jsonBytes = Encoding.UTF8.GetBytes(json);
@@ -138,6 +152,26 @@ namespace SampleDataIngestTool
                 string hashedString = BuildSignature(stringToHash, sharedKey);
                 string signature = "SharedKey " + customerId + ":" + hashedString;
                 PostData(signature, datestring, json, filePath);
+
+                ////Create a hash for the API signature
+                //var datestring = DateTime.UtcNow.ToString("r");
+                //string json = ReadFile(filePath);
+
+                //var strippedDate = JsonConvert.DeserializeObject(JsonConvert.SerializeObject(StripSuffix(json)));
+
+                ////var myDetails = JsonConvert.DeserializeObject(json);
+                //var myDetails = StripSuffix(json);
+
+
+                //string json1 = JsonConvert.SerializeObject(myDetails);
+
+
+
+                //var jsonBytes = Encoding.UTF8.GetBytes(json1);
+                //string stringToHash = "POST\n" + jsonBytes.Length + "\napplication/json\n" + "x-ms-date:" + datestring + "\n/api/logs";
+                //string hashedString = BuildSignature(stringToHash, sharedKey);
+                //string signature = "SharedKey " + customerId + ":" + hashedString;
+                //PostData(signature, datestring, json1, filePath);
             }
             catch (Exception excep)
             {
@@ -158,7 +192,7 @@ namespace SampleDataIngestTool
                 var path = new SampleDataPath();
                 var dirPath = path.GetDirPath();
 
-                logName = filePath.Replace(dirPath,"").Replace("_CL.json", "").Replace(".json", "");
+                logName = filePath.Replace(dirPath, "").Replace("_CL.json", "").Replace(".json", "");
                 client.DefaultRequestHeaders.Add("Log-Type", logName);
                 client.DefaultRequestHeaders.Add("Authorization", signature);
                 client.DefaultRequestHeaders.Add("x-ms-date", date);
@@ -171,7 +205,7 @@ namespace SampleDataIngestTool
                 string result = responseContent.ReadAsStringAsync().Result;
 
                 var fileName = logName + "_CL.json";
-                
+
                 if (response.Result.StatusCode.ToString().Contains("OK"))
                 {
                     Console.WriteLine("{0} is successfully pushed", fileName);
@@ -186,5 +220,30 @@ namespace SampleDataIngestTool
                 Console.WriteLine("API Post Exception: " + excep.Message);
             }
         }
+
+        private static List<JObject> StripSuffix(string json)
+        {
+            JArray a = JArray.Parse(json);
+            var obj = new List<JObject>();
+            foreach (JObject o in a.Children<JObject>())
+            {
+                JObject addob = new JObject();
+                foreach (JProperty p in o.Properties())
+                {
+                    string name = p.Name;
+                    string value = (string)p.Value;
+                    Console.WriteLine(name + " -- " + value);
+                    if (name.EndsWith("_s") || name.EndsWith("_t") || name.EndsWith("_d") || name.EndsWith("_g") || name.EndsWith("_b"))
+                    {
+                        name = name.Substring(0, name.Length - 2);
+                    }
+
+                    addob.Add(new JProperty(name, value));
+                }
+                obj.Add(addob);
+            }
+            return obj;
+        }
+
     }
 }
